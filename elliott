@@ -14,6 +14,7 @@ from __future__ import print_function
 import datetime
 from multiprocessing.dummy import Pool as ThreadPool
 from multiprocessing import cpu_count
+import json
 import os
 import sys
 
@@ -950,6 +951,47 @@ def find_cve_trackers(runtime, cve, status):
     click.echo("Found {} bugs:".format(len(bug_list)))
     for b in bug_list:
         click.echo("{}\t{:15s}\t{}".format(b.bug_id, b.status, b.summary))
+
+#
+# Verify images in a payload match the corresponding advisory
+# verify-payload
+#
+@cli.command("verify-payload", short_help="List builds attached to ADVISORY")
+@click.option("--payload", metavar="PULLSPEC",
+                required=True,
+                help="The pullspec to the payload to verify")
+@click.argument('advisory', type=int)
+@click.pass_context
+def verify_payload(ctx, payload, advisory):
+    """List builds attached to ADVISORY
+
+ex:
+
+    Verify builds in the given payload match the builds attached to advisory 41567
+
+\b
+    $ elliott verify-payload --payload registry.svc.ci.openshift.org/ocp/release:4.1.0-0.nightly-2019-04-28-064010 41567
+"""
+    try:
+        builds = elliottlib.errata.get_builds(advisory)
+    except GSSError:
+        exit_unauthenticated()
+    except elliottlib.exceptions.ErrataToolError as ex:
+        raise ElliottFatalError(getattr(ex, 'message', repr(ex)))
+
+    all_nvrs = []
+    # Results come back with top level keys which are brew tags
+    for tag in builds.keys():
+        # Each top level has a key 'builds' which is a list of dicts
+        for build in builds[tag]['builds']:
+            # Each dict has a top level key which might be the actual
+            # 'nvr' but I don't have enough data to know for sure
+            # yet. Also I don't know when there might be more than one
+            # key in the build dict. We'll loop over it to be sure.
+            for name in build.keys():
+                # Save the 'nvr' key from the build in the list of
+                # builds for the current brew tag
+                all_nvrs.append(build[name]['nvr'])
 
 
 # -----------------------------------------------------------------------------
