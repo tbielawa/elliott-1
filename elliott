@@ -979,7 +979,7 @@ ex:
     except elliottlib.exceptions.ErrataToolError as ex:
         raise ElliottFatalError(getattr(ex, 'message', repr(ex)))
 
-    all_nvrs = []
+    all_advisory_nvrs = []
     # Results come back with top level keys which are brew tags
     for tag in builds.keys():
         # Each top level has a key 'builds' which is a list of dicts
@@ -991,7 +991,19 @@ ex:
             for name in build.keys():
                 # Save the 'nvr' key from the build in the list of
                 # builds for the current brew tag
-                all_nvrs.append(build[name]['nvr'])
+                all_advisory_nvrs.append(build[name]['nvr'])
+
+    # all_payload_nvrs = []
+    # `oc adm release info payload -o json > /tmp/elliott.XXXXXXX.release-info.json`
+    # payload = dict(release-info.json)
+    # for image in payload.references.spec.tags
+    #     pullspec = image['from']['name']
+    #     image_info = `oc image info pullspec -o json > ......`
+    #     labels = image_info.config.container_config.Labels
+    #     name = labels['com.redhat.component']
+    #     version = labels['version']
+    #     release = labels['release']
+    #     all_payload_nvrs.append("{}-{}-{}".format(name, version, release))
 
 
 # -----------------------------------------------------------------------------
